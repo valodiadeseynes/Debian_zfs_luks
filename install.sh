@@ -56,6 +56,10 @@ mount --rbind /dev  /mnt/dev
 mount --rbind /proc /mnt/proc
 mount --rbind /sys  /mnt/sys
 chroot /mnt /usr/bin/env DISK=$DISK bash --login
+cat > /usr/sbin/policy-rc.d <<EOF
+#!/bin/sh
+exit 101
+EOF
 cat > /etc/crypttab <<EOF
 crypt_swap $(blkid ${DISK}-part4 | awk '{print $2}' | tr -d '"') none luks,swap,discard
 crypt_system $(blkid ${DISK}-part5 | awk '{print $2}' | tr -d '"') none luks,discard
