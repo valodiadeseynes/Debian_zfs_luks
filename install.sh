@@ -60,6 +60,7 @@ cat > /usr/sbin/policy-rc.d <<EOF
 #!/bin/sh
 exit 101
 EOF
+chmod +x /usr/sbin/policy-rc.d
 cat > /etc/crypttab <<EOF
 crypt_swap $(blkid ${DISK}-part4 | awk '{print $2}' | tr -d '"') none luks,swap,discard
 crypt_system $(blkid ${DISK}-part5 | awk '{print $2}' | tr -d '"') none luks,discard
