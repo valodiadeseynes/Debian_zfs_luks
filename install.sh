@@ -32,7 +32,7 @@ sgdisk -n5:0:0 -t5:BF00 $DISK
 
 # LUKS encryption for rpool
 echo $LUKS_PASSWORD | cryptsetup -q luksFormat ${DISK}-part5
-echo $LUKS_PASSWORD | cryptsetup luksOpen /dev/sda2 crypt_system
+echo $LUKS_PASSWORD | cryptsetup luksOpen ${DISK}-part5 crypt_system
 dd if=/dev/zero of=/dev/mapper/crypt_system
 ## Installing ZFS
 # boot pool
