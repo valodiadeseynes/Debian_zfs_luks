@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Variables
 HOSTNAME=""
@@ -9,7 +9,6 @@ ROOT_PASSWORD=""
 
 ### Installation
 # Preparing the live system
-sudo -i
 cat > /etc/apt/sources.list <<EOF
 deb http://deb.debian.org/debian/ bullseye main contrib
 deb http://deb.debian.org/debian/ bullseye-updates main contrib
@@ -23,22 +22,23 @@ apt install zfsutils-linux -y
 
 ## Creating partitions
 # UEFI
-sgdisk     -n2:1M:+512M   -t2:EF00 $DISK
+sgdisk -n2:1M:+512M -t2:EF00 $DISK
 # boot pool
-sgdisk     -n3:0:+1G      -t3:BF01 $DISK
+sgdisk -n3:0:+1G -t3:BF01 $DISK
 # swap
-sgdisk     -n4:0:+8G        -t4:BF00 $DISK
+sgdisk -n4:0:+8G -t4:BF00 $DISK
 # root pool
-sgdisk     -n5:0:0        -t5:BF00 $DISK
+sgdisk -n5:0:0 -t5:BF00 $DISK
 
 # LUKS encryption for rpool
-echo $LUKS_PASSWORD |cryptsetup -q luksFormat ${DISK}-part5
-cryptsetup luksOpen /dev/sda2 crypt_system
+echo $LUKS_PASSWORD | cryptsetup -q luksFormat ${DISK}-part5
+echo $LUKS_PASSWORD | cryptsetup luksOpen /dev/sda2 crypt_system
+dd if=/dev/zero of=/dev/mapper/crypt_system
 ## Installing ZFS
 # boot pool
 zpool create -o cachefile=/etc/zfs/zpool.cache -o ashift=12 -d -o feature@async_destroy=enabled -o feature@bookmarks=enabled -o feature@embedded_data=enabled -o feature@empty_bpobj=enabled -o feature@enabled_txg=enabled -o feature@extensible_dataset=enabled -o feature@filesystem_limits=enabled -o feature@hole_birth=enabled -o feature@large_blocks=enabled -o feature@lz4_compress=enabled -o feature@spacemap_histogram=enabled -o feature@zpool_checkpoint=enabled -O acltype=posixacl -O canmount=off -O compression=lz4 -O devices=off -O normalization=formD -O relatime=on -O xattr=sa -O mountpoint=/boot -R /mnt bpool ${DISK}-part3
 # root pool
-zpool create -o ashift=12 -O acltype=posixacl -O canmount=off -O compression=lz4 -O dnodesize=auto -O normalization=formD -O relatime=on -O xattr=sa -O mountpoint=/ -R /mnt rpool ${DISK}-part5
+zpool create -o ashift=12 -O acltype=posixacl -O canmount=off -O compression=lz4 -O dnodesize=auto -O normalization=formD -O relatime=on -O xattr=sa -O mountpoint=/ -R /mnt rpool /dev/mapper/crypt_system
 zfs create -o mountpoint=/ rpool/ROOT
 zfs create -o mountpoint=/boot bpool/BOOT
 zfs create rpool/home
