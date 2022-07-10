@@ -5,6 +5,7 @@ HOSTNAME=""
 DISK="/dev/disk/by-id/xxx"
 NETWORK=""
 LUKS_PASSWORD=""
+ROOT_PASSWORD=""
 
 ### Installation
 # Preparing the live system
@@ -31,7 +32,7 @@ sgdisk     -n4:0:+8G        -t4:BF00 $DISK
 sgdisk     -n5:0:0        -t5:BF00 $DISK
 
 # LUKS encryption for rpool
-cryptsetup -q luksFormat --verify-passphrase --hash sha256 --key-size=512 --cipher aes-xts-plain64 ${DISK}-part5
+echo $LUKS_PASSWORD |cryptsetup -q luksFormat ${DISK}-part5
 cryptsetup luksOpen /dev/sda2 crypt_system
 ## Installing ZFS
 # boot pool
@@ -73,7 +74,7 @@ mount /boot/efi
 apt-get install --yes grub-efi-amd64 shim-signed
 
 # root password
-passwd
+echo $ROOT_PASSWORD | passwd --stdin
 
 cat > /etc/systemd/system/zfs-import-bpool.service <<EOF
 [Unit]
