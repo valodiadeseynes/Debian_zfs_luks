@@ -21,6 +21,7 @@ modprobe zfs
 apt install zfsutils-linux -y
 
 ## Creating partitions
+wipefs --all --force $DISK
 # UEFI
 sgdisk -n2:1M:+512M -t2:EF00 $DISK
 # boot pool
