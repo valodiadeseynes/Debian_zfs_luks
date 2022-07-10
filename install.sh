@@ -120,8 +120,10 @@ killall zed
 sed -Ei "s|/mnt/?|/|" /etc/zfs/zfs-list.cache/*
 # first boot
 apt install --yes openssh-server
-zfs snapshot bpool/BOOT/debian@install
-zfs snapshot rpool/ROOT/debian@install
+zfs snapshot bpool/BOOT@install
+zfs snapshot rpool/ROOT@install
+zfs snapshot rpool/home/root@install
+zfs snapshot rpool/home/users@install
 exit
 
 mount | grep -v zfs | tac | awk '/\/mnt/ {print $3}' | xargs -i{} umount -lf {}
