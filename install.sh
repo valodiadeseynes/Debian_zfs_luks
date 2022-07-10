@@ -56,7 +56,8 @@ mount --rbind /proc /mnt/proc
 mount --rbind /sys  /mnt/sys
 chroot /mnt /usr/bin/env DISK=$DISK bash --login
 cat > /etc/crypttab <<EOF
-crypt_system $(blkid ${DISK}-part5 | awk '{print $2}' | tr -d '"') none luks
+crypt_swap $(blkid ${DISK}-part4 | awk '{print $2}' | tr -d '"') none luks,swap,discard
+crypt_system $(blkid ${DISK}-part5 | awk '{print $2}' | tr -d '"') none luks,discard
 EOF
 ln -s /proc/self/mounts /etc/mtab
 apt update
@@ -98,12 +99,9 @@ systemctl enable tmp.mount
 grub-probe /boot
 update-initramfs -c -k all
 
-# vi /etc/default/grub
-# Set: GRUB_CMDLINE_LINUX="root=ZFS=rpool/ROOT/debian"
-# Remove quiet from: GRUB_CMDLINE_LINUX_DEFAULT
-# Uncomment: GRUB_TERMINAL=console
-# Save and quit.
-
+sed -i 's/#GRUB_TERMINAL=console/GRUB_TERMINAL=console/g' /etc/default/grub
+sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT=""/g' /etc/default/grub
+sed -i 's@GRUB_CMDLINE_LINUX=""@GRUB_CMDLINE_LINUX="root=ZFS=rpool/ROOT"@g' /etc/default/grub
 update-grub
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=debian --recheck --no-floppy
 
