@@ -2,10 +2,9 @@
 
 # Variables
 HOSTNAME=""
-DISK=""
-BPOOL="/dev/disk/by-id/xxx"
-RPOOL="/dev/disk/by-id/xxx"
+DISK="/dev/disk/by-id/xxx"
 NETWORK=""
+LUKS_PASSWORD=""
 
 ### Installation
 # Preparing the live system
@@ -26,14 +25,19 @@ apt install zfsutils-linux -y
 sgdisk     -n2:1M:+512M   -t2:EF00 $DISK
 # boot pool
 sgdisk     -n3:0:+1G      -t3:BF01 $DISK
+# swap
+sgdisk     -n4:0:+8G        -t4:BF00 $DISK
 # root pool
-sgdisk     -n4:0:0        -t4:BF00 $DISK
+sgdisk     -n5:0:0        -t5:BF00 $DISK
 
+# LUKS encryption for rpool
+cryptsetup -q luksFormat --verify-passphrase --hash sha256 --key-size=512 --cipher aes-xts-plain64 ${DISK}-part5
+cryptsetup luksOpen /dev/sda2 crypt_system
 ## Installing ZFS
 # boot pool
 zpool create -o cachefile=/etc/zfs/zpool.cache -o ashift=12 -d -o feature@async_destroy=enabled -o feature@bookmarks=enabled -o feature@embedded_data=enabled -o feature@empty_bpobj=enabled -o feature@enabled_txg=enabled -o feature@extensible_dataset=enabled -o feature@filesystem_limits=enabled -o feature@hole_birth=enabled -o feature@large_blocks=enabled -o feature@lz4_compress=enabled -o feature@spacemap_histogram=enabled -o feature@zpool_checkpoint=enabled -O acltype=posixacl -O canmount=off -O compression=lz4 -O devices=off -O normalization=formD -O relatime=on -O xattr=sa -O mountpoint=/boot -R /mnt bpool ${DISK}-part3
 # root pool
-zpool create -o ashift=12 -O acltype=posixacl -O canmount=off -O compression=lz4 -O dnodesize=auto -O normalization=formD -O relatime=on -O xattr=sa -O mountpoint=/ -R /mnt rpool ${DISK}-part4
+zpool create -o ashift=12 -O acltype=posixacl -O canmount=off -O compression=lz4 -O dnodesize=auto -O normalization=formD -O relatime=on -O xattr=sa -O mountpoint=/ -R /mnt rpool ${DISK}-part5
 zfs create -o mountpoint=/ rpool/ROOT
 zfs create -o mountpoint=/boot bpool/BOOT
 zfs create rpool/home
@@ -51,6 +55,9 @@ mount --rbind /dev  /mnt/dev
 mount --rbind /proc /mnt/proc
 mount --rbind /sys  /mnt/sys
 chroot /mnt /usr/bin/env DISK=$DISK bash --login
+cat > /etc/crypttab <<EOF
+crypt_system $(blkid ${DISK}-part5 | awk '{print $2}' | tr -d '"') none luks
+EOF
 ln -s /proc/self/mounts /etc/mtab
 apt update
 apt install --yes console-setup locales
@@ -120,5 +127,6 @@ exit
 
 mount | grep -v zfs | tac | awk '/\/mnt/ {print $3}' | xargs -i{} umount -lf {}
 zpool export -a
+cryptsetup luksClose crypt_system
 
 echo "System installed. You can reboot now."
